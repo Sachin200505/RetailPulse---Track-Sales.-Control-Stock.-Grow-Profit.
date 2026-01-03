@@ -15,7 +15,13 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:8081", "http://127.0.0.1:8081"],
+    origin: [
+      "http://localhost:8081",
+      "http://127.0.0.1:8081",
+      "https://retail-pulse-track-sales-control-st.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
