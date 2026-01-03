@@ -1,0 +1,307 @@
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RetailPulse - Violet Gradient Theme
+   Professional violet/pink gradient theme for retail POS
+*/
+
+
+@layer base {
+  :root {
+    /* Violet Gradient Theme - Based on provided palette */
+    /* Soap #DABDEB, Classic Rose #F2CBEC, Pale Pink #FFDCDD, Misty Rose #FFEAE2, Cosmic Latte #FFF9E7, Ube #8C75CA */
+    
+    --background: 280 40% 97%;
+    --foreground: 260 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 260 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 260 30% 15%;
+
+    /* Primary - Ube (Accent) #8C75CA */
+    --primary: 258 40% 63%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 280 45% 94%;
+
+    /* Secondary - Soft lavender */
+    --secondary: 280 30% 95%;
+    --secondary-foreground: 260 30% 25%;
+
+    --muted: 280 20% 93%;
+    --muted-foreground: 260 15% 45%;
+
+    --accent: 280 40% 90%;
+    --accent-foreground: 258 40% 45%;
+
+    /* Status Colors */
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 38 90% 15%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 0% 100%;
+    --info: 200 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 280 20% 88%;
+    --input: 280 20% 88%;
+    --ring: 258 40% 63%;
+
+    --radius: 0.5rem;
+
+    /* Sidebar - Deep violet */
+    --sidebar-background: 258 35% 30%;
+    --sidebar-foreground: 280 30% 95%;
+    --sidebar-primary: 258 50% 70%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 258 30% 38%;
+    --sidebar-accent-foreground: 280 30% 95%;
+    --sidebar-border: 258 30% 35%;
+    --sidebar-ring: 258 50% 70%;
+
+    /* Violet Gradients */
+    --gradient-bg: linear-gradient(135deg, hsl(280 45% 96%) 0%, hsl(320 40% 95%) 50%, hsl(30 50% 96%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(280 30% 99%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(258 40% 63%) 0%, hsl(280 50% 70%) 100%);
+    --gradient-soft: linear-gradient(135deg, hsl(280 45% 94%) 0%, hsl(320 45% 94%) 50%, hsl(30 60% 95%) 100%);
+    
+    /* Shadows with violet tint */
+    --shadow-sm: 0 1px 2px 0 hsl(258 30% 30% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(258 30% 30% / 0.07), 0 2px 4px -2px hsl(258 30% 30% / 0.05);
+    --shadow-lg: 0 10px 15px -3px hsl(258 30% 30% / 0.08), 0 4px 6px -4px hsl(258 30% 30% / 0.05);
+    --shadow-card: 0 2px 8px -2px hsl(258 40% 40% / 0.1), 0 0 1px hsl(258 40% 40% / 0.1);
+    --shadow-glow: 0 0 20px hsl(258 40% 63% / 0.3);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background: var(--gradient-bg);
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  /* Dashboard Cards - Compact */
+  .dashboard-card {
+    @apply bg-card rounded-lg p-3 md:p-4 border border-border;
+    box-shadow: var(--shadow-card);
+  }
+
+  .stat-card {
+    @apply dashboard-card flex flex-col gap-1;
+  }
+
+  .stat-card-value {
+    @apply text-xl md:text-2xl font-bold text-foreground;
+  }
+
+  .stat-card-label {
+    @apply text-xs md:text-sm font-medium text-muted-foreground;
+  }
+
+  .stat-card-icon {
+    @apply w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center;
+    background: var(--gradient-primary);
+  }
+
+  /* Gradient Buttons */
+  .btn-gradient {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium text-white;
+    background: var(--gradient-primary);
+    @apply hover:opacity-90 transition-all;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Status Badges */
+  .badge-success {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: hsl(var(--success) / 0.1);
+    color: hsl(var(--success));
+  }
+
+  .badge-warning {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: hsl(var(--warning) / 0.15);
+    color: hsl(38 70% 35%);
+  }
+
+  .badge-danger {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: hsl(var(--danger) / 0.1);
+    color: hsl(var(--danger));
+  }
+
+  .badge-primary {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+    background-color: hsl(var(--primary) / 0.1);
+    color: hsl(var(--primary));
+  }
+
+  /* Form Inputs - Compact */
+  .form-input {
+    @apply w-full px-3 py-1.5 md:py-2 text-sm border border-input rounded-md bg-card text-foreground;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary;
+    @apply placeholder:text-muted-foreground;
+  }
+
+  .form-label {
+    @apply block text-xs md:text-sm font-medium text-foreground mb-1;
+  }
+
+  /* Buttons - Compact */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:py-2 rounded-md text-sm font-medium;
+    @apply bg-primary text-primary-foreground;
+    @apply hover:opacity-90 transition-opacity;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:py-2 rounded-md text-sm font-medium;
+    @apply bg-secondary text-secondary-foreground border border-border;
+    @apply hover:bg-muted transition-colors;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:py-2 rounded-md text-sm font-medium;
+    @apply bg-danger text-danger-foreground;
+    @apply hover:opacity-90 transition-opacity;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-success {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 md:py-2 rounded-md text-sm font-medium;
+    background-color: hsl(var(--success));
+    color: hsl(var(--success-foreground));
+    @apply hover:opacity-90 transition-opacity;
+    @apply disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Tables - Compact */
+  .data-table {
+    @apply w-full text-xs md:text-sm;
+  }
+
+  .data-table thead {
+    @apply bg-muted/50;
+  }
+
+  .data-table th {
+    @apply px-2 md:px-4 py-2 text-left font-semibold text-foreground border-b border-border;
+  }
+
+  .data-table td {
+    @apply px-2 md:px-4 py-2 border-b border-border text-foreground;
+  }
+
+  .data-table tbody tr:hover {
+    @apply bg-muted/30;
+  }
+
+  /* POS Billing - Compact */
+  .pos-item {
+    @apply flex items-center justify-between p-2 md:p-3 bg-card rounded-lg border border-border mb-1.5;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .pos-summary {
+    @apply bg-primary-light rounded-lg p-3 md:p-4 border border-primary/20;
+  }
+
+  /* Navigation */
+  .nav-item {
+    @apply flex items-center gap-2 md:gap-3 px-3 py-2 rounded-lg text-sidebar-foreground/80 text-sm;
+    @apply hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors;
+  }
+
+  .nav-item-active {
+    @apply bg-sidebar-accent text-sidebar-foreground font-medium;
+  }
+
+  /* Page Header - Compact */
+  .page-header {
+    @apply mb-4;
+  }
+
+  .page-title {
+    @apply text-lg md:text-xl font-bold text-foreground;
+  }
+
+  .page-subtitle {
+    @apply text-xs md:text-sm text-muted-foreground mt-0.5;
+  }
+
+  /* Charts */
+  .chart-container {
+    @apply dashboard-card;
+  }
+
+  .chart-title {
+    @apply text-sm md:text-base font-semibold text-foreground mb-3;
+  }
+
+  /* Compact Grid */
+  .compact-grid {
+    @apply grid gap-3 md:gap-4;
+  }
+
+  /* Mobile-first responsive cards */
+  .responsive-card {
+    @apply p-3 md:p-4 lg:p-5;
+  }
+
+  /* Tier Badges */
+  .tier-bronze {
+    @apply bg-amber-100 text-amber-800 border-amber-200;
+  }
+
+  .tier-silver {
+    @apply bg-slate-100 text-slate-700 border-slate-200;
+  }
+
+  .tier-gold {
+    @apply bg-yellow-100 text-yellow-800 border-yellow-200;
+  }
+}
+
+/* Custom scrollbar with violet theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(280 20% 95%);
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(258 30% 75%);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(258 40% 63%);
+}

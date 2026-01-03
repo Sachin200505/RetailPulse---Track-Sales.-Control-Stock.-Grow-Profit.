@@ -1,0 +1,10 @@
+project_id = "tqjniimwsgjyhfepfavd"
+
+[functions.reset-password]
+verify_jwt = true
+
+[functions.send-sms]
+verify_jwt = false
+
+[functions.check-expired-products]
+verify_jwt = false
