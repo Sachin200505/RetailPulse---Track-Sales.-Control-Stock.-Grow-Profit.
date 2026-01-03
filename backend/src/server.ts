@@ -10,8 +10,10 @@ const startServer = async () => {
   lowStockJob();
   checkExpiredProductsJob();
 
-  app.listen(ENV.PORT, () => {
-    console.log(`🚀 Server running on port ${ENV.PORT}`);
+  const port = Number(process.env.PORT) || ENV.PORT || 10000;
+
+  app.listen(port, "0.0.0.0", () => {
+    console.log(`🚀 Server running on port ${port}`);
   });
 };
 

@@ -5,8 +5,8 @@ dotenv.config();
 const withDefault = <T>(value: T | undefined, fallback: T): T => (value === undefined || value === null || value === "" ? fallback : value);
 
 export const ENV = {
-  PORT: Number(withDefault(process.env.PORT, "5000")),
-  MONGO_URI: withDefault(process.env.MONGO_URI, "memory"),
+  PORT: Number(withDefault(process.env.PORT, "10000")),
+  MONGO_URI: withDefault(process.env.MONGO_URI, ""),
   JWT_SECRET: withDefault(process.env.JWT_SECRET, "dev-secret"),
   JWT_EXPIRES_IN: withDefault(process.env.JWT_EXPIRES_IN, "7d"),
   NODE_ENV: withDefault(process.env.NODE_ENV, "development"),
