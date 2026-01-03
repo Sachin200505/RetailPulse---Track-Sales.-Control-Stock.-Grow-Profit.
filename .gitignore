@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+frontend/dist/
+frontend/.vite/
+backend/dist/
+build/
+dist/
+
+# Caches
+**/.cache/
+.cache/
+.eslintcache
+
+# Env & secrets
+.env
+*.env
+.env.*
+backend/.env
+frontend/.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
