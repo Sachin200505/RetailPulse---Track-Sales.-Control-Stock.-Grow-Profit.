@@ -18,6 +18,7 @@ export interface StockItem {
   stockValue: number;
   lastSold: string | null;
   status: 'healthy' | 'low' | 'out' | 'dead';
+  expiryDate?: string | null;
 }
 
 // Low stock threshold
@@ -33,6 +34,7 @@ const mapProduct = (p: any) => ({
   stock: Number(p.stock ?? 0),
   costPrice: Number(p.costPrice ?? p.cost_price ?? 0),
   isActive: p.isActive ?? p.is_active ?? true,
+  expiryDate: p.expiryDate || p.expiry_date || null,
 });
 
 export const inventoryService = {
@@ -130,6 +132,7 @@ export const inventoryService = {
         stockValue: p.stock * p.costPrice,
         lastSold: lastSoldDate ? new Date(lastSoldDate).toLocaleDateString() : null,
         status,
+        expiryDate: p.expiryDate || null,
       };
     });
   },

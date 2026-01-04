@@ -7,7 +7,6 @@ import PaymentGateway from '@/components/PaymentGateway';
 import BillReceipt from '@/components/BillReceipt';
 import { LoyaltyTierBadge, TierProgress } from '@/components/LoyaltyTierBadge';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const Billing: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -391,24 +390,6 @@ const Billing: React.FC = () => {
 
       if (!result.success) {
         throw new Error(result.error || 'Transaction failed');
-      }
-
-      // Log audit
-      try {
-        await supabase.rpc('log_audit', {
-          _action_type: 'SALE',
-          _entity_type: 'transaction',
-          _entity_id: invoiceNumber,
-          _old_values: null,
-          _new_values: { 
-            total_amount: totals.totalAmount, 
-            items_count: cartItems.length,
-            payment_method: paymentMethod 
-          },
-          _notes: `Sale to ${customer.name}`
-        });
-      } catch (auditError) {
-        console.error('Failed to log audit:', auditError);
       }
 
       // Fetch updated customer for total points

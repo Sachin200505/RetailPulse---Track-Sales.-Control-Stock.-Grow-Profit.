@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Package, AlertTriangle, XCircle, Clock, DollarSign, Layers, TrendingDown, CalendarX } from 'lucide-react';
 import { inventoryService, InventorySummary, StockItem } from '@/services/inventoryService';
-import { supabase } from '@/integrations/supabase/client';
 
 const isExpired = (expiryDate?: string | null): boolean => {
   if (!expiryDate) return false;
@@ -37,28 +36,12 @@ const Inventory: React.FC = () => {
         inventoryService.getSummary(),
         inventoryService.getAll(),
       ]);
-      
-      // Fetch expiry dates for all products
-      const { data: products } = await supabase
-        .from('products')
-        .select('id, expiry_date')
-        .eq('is_active', true);
-      
-      const expiryMap: Record<string, string | null> = {};
-      (products || []).forEach(p => {
-        expiryMap[p.id] = p.expiry_date;
-      });
-      
-      const enrichedInventory = inventoryData.map(item => ({
-        ...item,
-        expiryDate: expiryMap[item.id] || null,
-      }));
-      
-      const expired = enrichedInventory.filter(item => isExpired(item.expiryDate)).length;
+
+      const expired = inventoryData.filter(item => isExpired(item.expiryDate)).length;
       setExpiredCount(expired);
-      
+
       setSummary(summaryData);
-      setInventory(enrichedInventory);
+      setInventory(inventoryData);
     } catch (error) {
       console.error('Failed to fetch inventory:', error);
     } finally {
