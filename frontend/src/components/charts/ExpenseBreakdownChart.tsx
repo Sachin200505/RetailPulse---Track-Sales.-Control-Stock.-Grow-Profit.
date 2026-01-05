@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   PieChart,
   Pie,
@@ -24,6 +24,23 @@ const COLORS = [
 
 export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ data }) => {
   const formatCurrency = (value: number) => `₹${value.toLocaleString()}`;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const { showLabels, radii } = useMemo(() => {
+    const mobile = isMobile;
+    return {
+      showLabels: !mobile && data.length <= 6,
+      radii: mobile ? { inner: 46, outer: 70 } : { inner: 55, outer: 85 },
+    };
+  }, [isMobile, data.length]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -57,20 +74,20 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ da
   return (
     <div className="chart-container">
       <h3 className="chart-title">Expense Breakdown by Category</h3>
-      <div className="h-72">
+      <div className="h-80 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={55}
-              outerRadius={85}
+              innerRadius={radii.inner}
+              outerRadius={radii.outer}
               paddingAngle={3}
               dataKey="amount"
               nameKey="category"
-              label={({ category, percentage }) => `${category} (${percentage}%)`}
-              labelLine={{ stroke: 'hsl(220 10% 65%)', strokeWidth: 1 }}
+              label={showLabels ? ({ category, percentage }) => `${category} (${percentage}%)` : false}
+              labelLine={showLabels ? { stroke: 'hsl(220 10% 65%)', strokeWidth: 1 } : false}
             >
               {data.map((entry, index) => (
                 <Cell 
@@ -83,10 +100,11 @@ export const ExpenseBreakdownChart: React.FC<ExpenseBreakdownChartProps> = ({ da
             <Tooltip content={<CustomTooltip />} />
             <Legend 
               verticalAlign="bottom" 
-              height={36}
+              height={40}
               formatter={(value: string) => (
                 <span className="text-sm text-foreground">{value}</span>
               )}
+              wrapperStyle={{ paddingTop: 8 }}
             />
           </PieChart>
         </ResponsiveContainer>

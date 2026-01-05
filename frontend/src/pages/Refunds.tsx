@@ -22,95 +22,6 @@ const Refunds: React.FC = () => {
     fetchRecentRefunds();
   }, []);
 
-  // Invoice search autocomplete
-  useEffect(() => {
-    const searchInvoices = async () => {
-      const query = searchQuery.trim();
-      if (query.length < 1) {
-        setInvoiceSuggestions([]);
-        setShowInvoiceDropdown(false);
-        return;
-      }
-
-      try {
-        const all = await billingService.getAllTransactions();
-        const filtered = all
-          .filter(t => !t.is_refunded && t.invoice_number.toLowerCase().includes(query.toLowerCase()))
-          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-          .slice(0, 5);
-
-        setInvoiceSuggestions(filtered);
-        setShowInvoiceDropdown(filtered.length > 0);
-        setFocusedInvoiceIndex(-1);
-      } catch (error) {
-        console.error('Error searching invoices:', error);
-      }
-    };
-
-    const debounce = setTimeout(searchInvoices, 200);
-    return () => clearTimeout(debounce);
-  }, [searchQuery]);
-
-  const fetchRecentRefunds = async () => {
-    try {
-      const refunds = await refundService.getAllRefunds();
-      setRecentRefunds(refunds.slice(0, 10));
-    } catch (error) {
-      console.error('Failed to fetch refunds:', error);
-    }
-  };
-
-  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showInvoiceDropdown || invoiceSuggestions.length === 0) return;
-
-    switch (e.key) {
-      case 'ArrowDown':
-      case 'PageDown':
-        e.preventDefault();
-        setFocusedInvoiceIndex(prev => 
-          prev < invoiceSuggestions.length - 1 ? prev + 1 : prev
-        );
-        break;
-      case 'ArrowUp':
-      case 'PageUp':
-        e.preventDefault();
-        setFocusedInvoiceIndex(prev => prev > 0 ? prev - 1 : 0);
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (focusedInvoiceIndex >= 0 && focusedInvoiceIndex < invoiceSuggestions.length) {
-          selectInvoice(invoiceSuggestions[focusedInvoiceIndex]);
-        } else if (invoiceSuggestions.length > 0) {
-          selectInvoice(invoiceSuggestions[0]);
-        }
-        break;
-      case 'Escape':
-        setShowInvoiceDropdown(false);
-        setFocusedInvoiceIndex(-1);
-        break;
-    }
-  }, [showInvoiceDropdown, invoiceSuggestions, focusedInvoiceIndex]);
-
-  const selectInvoice = async (bill: Bill) => {
-    setSearchQuery(bill.invoice_number);
-    setShowInvoiceDropdown(false);
-    setInvoiceSuggestions([]);
-    setTransaction(bill);
-    setSearchError('');
-
-    // Check if can refund
-    const canRefundCheck = await refundService.canRefund(bill.id);
-    if (!canRefundCheck.canRefund) {
-      setSearchError(canRefundCheck.reason || 'Cannot refund');
-    }
-
-    // Fetch customer if exists
-    if (bill.customer_id) {
-      const cust = await customerService.getById(bill.customer_id);
-      setCustomer(cust);
-    }
-  };
-
   const handleSearch = async () => {
     if (!searchQuery.trim()) {
       toast.error('Enter invoice number');
@@ -150,6 +61,102 @@ const Refunds: React.FC = () => {
       setSearchError('Search failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Invoice search autocomplete
+  useEffect(() => {
+    const searchInvoices = async () => {
+      const query = searchQuery.trim();
+      if (query.length < 1) {
+        setInvoiceSuggestions([]);
+        setShowInvoiceDropdown(false);
+        return;
+      }
+
+      try {
+        const all = await billingService.getAllTransactions();
+        const filtered = all
+          .filter(t => !t.is_refunded && t.invoice_number.toLowerCase().includes(query.toLowerCase()))
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setInvoiceSuggestions(filtered);
+        setShowInvoiceDropdown(filtered.length > 0);
+        setFocusedInvoiceIndex(-1);
+      } catch (error) {
+        console.error('Error searching invoices:', error);
+      }
+    };
+
+    const debounce = setTimeout(searchInvoices, 200);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
+
+  const fetchRecentRefunds = async () => {
+    try {
+      const refunds = await refundService.getAllRefunds();
+      setRecentRefunds(refunds.slice(0, 10));
+    } catch (error) {
+      console.error('Failed to fetch refunds:', error);
+    }
+  };
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (showInvoiceDropdown && invoiceSuggestions.length > 0) {
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'PageDown':
+          e.preventDefault();
+          setFocusedInvoiceIndex(prev => 
+            prev < invoiceSuggestions.length - 1 ? prev + 1 : prev
+          );
+          return;
+        case 'ArrowUp':
+        case 'PageUp':
+          e.preventDefault();
+          setFocusedInvoiceIndex(prev => prev > 0 ? prev - 1 : 0);
+          return;
+        case 'Enter':
+          e.preventDefault();
+          if (focusedInvoiceIndex >= 0 && focusedInvoiceIndex < invoiceSuggestions.length) {
+            selectInvoice(invoiceSuggestions[focusedInvoiceIndex]);
+          } else if (invoiceSuggestions.length > 0) {
+            selectInvoice(invoiceSuggestions[0]);
+          }
+          return;
+        case 'Escape':
+          setShowInvoiceDropdown(false);
+          setFocusedInvoiceIndex(-1);
+          return;
+      }
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSearch();
+    } else if (e.key === 'Escape') {
+      setShowInvoiceDropdown(false);
+      setFocusedInvoiceIndex(-1);
+    }
+  }, [showInvoiceDropdown, invoiceSuggestions, focusedInvoiceIndex, handleSearch]);
+
+  const selectInvoice = async (bill: Bill) => {
+    setSearchQuery(bill.invoice_number);
+    setShowInvoiceDropdown(false);
+    setInvoiceSuggestions([]);
+    setTransaction(bill);
+    setSearchError('');
+
+    // Check if can refund
+    const canRefundCheck = await refundService.canRefund(bill.id);
+    if (!canRefundCheck.canRefund) {
+      setSearchError(canRefundCheck.reason || 'Cannot refund');
+    }
+
+    // Fetch customer if exists
+    if (bill.customer_id) {
+      const cust = await customerService.getById(bill.customer_id);
+      setCustomer(cust);
     }
   };
 
@@ -224,7 +231,7 @@ const Refunds: React.FC = () => {
                   
                   {/* Invoice Suggestions Dropdown */}
                   {showInvoiceDropdown && invoiceSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden">
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-64 overflow-auto" role="listbox">
                       {invoiceSuggestions.map((invoice, index) => (
                         <button
                           key={invoice.id}

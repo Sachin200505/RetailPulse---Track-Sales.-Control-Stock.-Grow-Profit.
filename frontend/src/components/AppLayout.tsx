@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Sidebar, Header } from './Layout';
 
@@ -18,8 +18,22 @@ export const AppLayout: React.FC = () => {
   
   const title = pageTitles[location.pathname] || 'RetailPulse';
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sidebarOpen]);
+
   return (
     <div className="flex min-h-screen w-full">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-card text-foreground px-3 py-2 rounded border border-border shadow-sm">
+        Skip to main content
+      </a>
+
       <Sidebar 
         isOpen={sidebarOpen} 
         onToggle={() => setSidebarOpen(!sidebarOpen)} 
@@ -31,7 +45,7 @@ export const AppLayout: React.FC = () => {
           title={title}
         />
         
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main id="main-content" className="flex-1 p-4 lg:p-6 overflow-auto" tabIndex={-1}>
           <Outlet />
         </main>
 

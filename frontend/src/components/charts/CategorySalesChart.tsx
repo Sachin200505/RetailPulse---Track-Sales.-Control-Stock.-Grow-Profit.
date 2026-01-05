@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   PieChart,
   Pie,
@@ -24,23 +24,40 @@ const COLORS = [
 export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) => {
   const formatCurrency = (value: number) => `₹${value.toLocaleString()}`;
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsMobile(window.innerWidth < 768);
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const { showLabels, radii } = useMemo(() => {
+    const mobile = isMobile;
+    return {
+      showLabels: !mobile && data.length <= 6,
+      radii: mobile ? { inner: 48, outer: 72 } : { inner: 60, outer: 90 },
+    };
+  }, [isMobile, data.length]);
+
   return (
     <div className="chart-container">
       <h3 className="chart-title">Category-wise Sales</h3>
-      <div className="h-72">
+      <div className="h-80 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={60}
-              outerRadius={90}
+              innerRadius={radii.inner}
+              outerRadius={radii.outer}
               paddingAngle={2}
               dataKey="sales"
               nameKey="category"
-              label={({ category, percentage }) => `${category} (${percentage}%)`}
-              labelLine={{ stroke: 'hsl(220 10% 65%)', strokeWidth: 1 }}
+              label={showLabels ? ({ category, percentage }) => `${category} (${percentage}%)` : false}
+              labelLine={showLabels ? { stroke: 'hsl(220 10% 65%)', strokeWidth: 1 } : false}
             >
               {data.map((entry, index) => (
                 <Cell 
@@ -50,13 +67,17 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
               ))}
             </Pie>
             <Tooltip 
-              formatter={(value: number) => [formatCurrency(value), 'Sales']}
+              formatter={(value: number, _name: string, props) => [
+                formatCurrency(value),
+                props && 'payload' in props ? props.payload.category : 'Sales'
+              ]}
               contentStyle={{
-                backgroundColor: 'hsl(0 0% 100%)',
-                border: '1px solid hsl(150 15% 88%)',
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
               }}
             />
+            <Legend verticalAlign="bottom" height={40} wrapperStyle={{ paddingTop: 8 }} />
           </PieChart>
         </ResponsiveContainer>
       </div>
