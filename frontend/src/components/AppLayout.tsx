@@ -35,7 +35,7 @@ export const AppLayout: React.FC = () => {
           <Outlet />
         </main>
 
-        <footer className="border-t border-border bg-card px-4 lg:px-6 py-4">
+        <footer className="px-4 lg:px-6 py-4">
           <p className="text-sm text-muted-foreground text-center">
             Made with <span className="text-rose-500">❤️</span> by <span className="text-foreground font-medium">Sachin Sundar</span>
           </p>

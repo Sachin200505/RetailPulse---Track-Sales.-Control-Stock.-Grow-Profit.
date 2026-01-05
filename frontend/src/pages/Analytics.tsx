@@ -286,7 +286,10 @@ const Analytics: React.FC = () => {
                 />
                 <Tooltip 
                   contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
-                  formatter={(value: number, name: string) => [formatCurrency(value), name === 'revenue' ? 'Revenue' : 'Profit']}
+                  formatter={(value: number, _name: string, props) => [
+                    formatCurrency(value),
+                    props && 'dataKey' in props && props.dataKey === 'revenue' ? 'Revenue' : 'Profit'
+                  ]}
                 />
                 <Legend />
                 <Bar dataKey="revenue" fill="hsl(var(--primary))" name="Revenue" radius={[0, 4, 4, 0]} />

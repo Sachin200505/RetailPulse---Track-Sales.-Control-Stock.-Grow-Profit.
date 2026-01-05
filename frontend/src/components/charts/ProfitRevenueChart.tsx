@@ -26,6 +26,8 @@ export const ProfitRevenueChart: React.FC<ProfitRevenueChartProps> = ({ data }) 
     dateLabel: formatDate(d.date),
   }));
 
+  const formatCurrency = (value: number) => `₹${value.toLocaleString()}`;
+
   return (
     <div className="chart-container">
       <h3 className="chart-title">Profit vs Revenue</h3>
@@ -44,26 +46,24 @@ export const ProfitRevenueChart: React.FC<ProfitRevenueChartProps> = ({ data }) 
               fontSize={12}
             />
             <Tooltip 
-              formatter={(value: number, name: string) => [
-                `₹${value.toLocaleString()}`, 
-                name === 'revenue' ? 'Revenue' : 'Profit'
+              formatter={(value: number, _name: string, props) => [
+                formatCurrency(value),
+                props && 'dataKey' in props && props.dataKey === 'revenue' ? 'Revenue' : 'Profit'
               ]}
               contentStyle={{
-                backgroundColor: 'hsl(0 0% 100%)',
-                border: '1px solid hsl(150 15% 88%)',
+                backgroundColor: 'hsl(var(--card))',
+                border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
               }}
             />
-            <Legend />
+            <Legend formatter={(value) => value === 'revenue' ? 'Revenue' : 'Profit'} />
             <Bar 
               dataKey="revenue" 
-              name="Revenue"
               fill="hsl(152 45% 45%)" 
               radius={[4, 4, 0, 0]}
             />
             <Bar 
               dataKey="profit" 
-              name="Profit"
               fill="hsl(200 80% 50%)" 
               radius={[4, 4, 0, 0]}
             />
