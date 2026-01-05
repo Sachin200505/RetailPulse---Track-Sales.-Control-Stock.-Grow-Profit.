@@ -76,6 +76,8 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
               }}
+              wrapperStyle={{ maxWidth: 'calc(100% - 12px)' }}
+              allowEscapeViewBox={{ x: false, y: false }}
             />
             <Legend verticalAlign="bottom" height={44} wrapperStyle={{ paddingTop: 8 }} />
           </PieChart>

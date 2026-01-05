@@ -77,7 +77,7 @@ const Refunds: React.FC = () => {
       try {
         const all = await billingService.getAllTransactions();
         const filtered = all
-          .filter(t => !t.is_refunded && t.invoice_number.toLowerCase().includes(query.toLowerCase()))
+          .filter(t => t.invoice_number.toLowerCase().includes(query.toLowerCase()))
           .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
         setInvoiceSuggestions(filtered);
@@ -231,7 +231,7 @@ const Refunds: React.FC = () => {
                   
                   {/* Invoice Suggestions Dropdown */}
                   {showInvoiceDropdown && invoiceSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-96 overflow-auto" role="listbox" aria-label="Invoice suggestions">
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-[28rem] overflow-y-auto" role="listbox" aria-label="Invoice suggestions">
                       {invoiceSuggestions.map((invoice, index) => (
                         <button
                           key={invoice.id}
