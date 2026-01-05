@@ -231,11 +231,13 @@ const Refunds: React.FC = () => {
                   
                   {/* Invoice Suggestions Dropdown */}
                   {showInvoiceDropdown && invoiceSuggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-64 overflow-auto" role="listbox">
+                    <div className="absolute left-0 right-0 top-full mt-1 bg-card border border-border rounded-lg shadow-lg z-20 overflow-hidden max-h-96 overflow-auto" role="listbox" aria-label="Invoice suggestions">
                       {invoiceSuggestions.map((invoice, index) => (
                         <button
                           key={invoice.id}
                           onClick={() => selectInvoice(invoice)}
+                          role="option"
+                          aria-selected={focusedInvoiceIndex === index}
                           className={`w-full flex items-center justify-between p-2 hover:bg-muted text-left text-sm transition-colors ${
                             focusedInvoiceIndex === index ? 'bg-primary/10' : ''
                           }`}

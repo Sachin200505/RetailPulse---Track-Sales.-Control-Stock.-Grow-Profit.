@@ -36,8 +36,8 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
   const { showLabels, radii } = useMemo(() => {
     const mobile = isMobile;
     return {
-      showLabels: !mobile && data.length <= 6,
-      radii: mobile ? { inner: 48, outer: 72 } : { inner: 60, outer: 90 },
+      showLabels: !mobile && data.length <= 4,
+      radii: mobile ? { inner: 48, outer: 72 } : { inner: 60, outer: 88 },
     };
   }, [isMobile, data.length]);
 
@@ -77,7 +77,7 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
                 borderRadius: '8px',
               }}
             />
-            <Legend verticalAlign="bottom" height={40} wrapperStyle={{ paddingTop: 8 }} />
+            <Legend verticalAlign="bottom" height={44} wrapperStyle={{ paddingTop: 8 }} />
           </PieChart>
         </ResponsiveContainer>
       </div>
