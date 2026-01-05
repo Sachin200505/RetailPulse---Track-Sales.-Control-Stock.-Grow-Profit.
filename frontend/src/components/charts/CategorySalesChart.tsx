@@ -36,8 +36,8 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
   const { showLabels, radii } = useMemo(() => {
     const mobile = isMobile;
     return {
-      showLabels: !mobile && data.length <= 4,
-      radii: mobile ? { inner: 48, outer: 72 } : { inner: 60, outer: 88 },
+      showLabels: !mobile && data.length <= 3,
+      radii: mobile ? { inner: 48, outer: 68 } : { inner: 60, outer: 86 },
     };
   }, [isMobile, data.length]);
 
@@ -46,7 +46,7 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
       <h3 className="chart-title">Category-wise Sales</h3>
       <div className="h-80 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart margin={{ top: 4, right: 8, left: 8, bottom: 8 }}>
             <Pie
               data={data}
               cx="50%"
@@ -79,7 +79,18 @@ export const CategorySalesChart: React.FC<CategorySalesChartProps> = ({ data }) 
               wrapperStyle={{ maxWidth: 'calc(100% - 12px)' }}
               allowEscapeViewBox={{ x: false, y: false }}
             />
-            <Legend verticalAlign="bottom" height={44} wrapperStyle={{ paddingTop: 8 }} />
+            <Legend 
+              verticalAlign="bottom" 
+              height={60} 
+              wrapperStyle={{ 
+                paddingTop: 8, 
+                maxWidth: '100%', 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                gap: 8, 
+                justifyContent: 'center',
+              }}
+            />
           </PieChart>
         </ResponsiveContainer>
       </div>
