@@ -518,6 +518,7 @@ const TransactionHistory: React.FC = () => {
                         aria-label="Select transaction"
                         checked={selectedIds.includes(t.id)}
                         onChange={() => toggleSelectOne(t.id)}
+                        className="rounded border-border"
                       />
                     </div>
                   )}

@@ -444,7 +444,8 @@ const Products: React.FC = () => {
                   type="checkbox"
                   checked={selectedIds.has(product.id)}
                   onChange={() => handleSelectOne(product.id)}
-                  className="rounded border-border mt-1"
+                  className="rounded border-border mt-1 flex-shrink-0"
+                  aria-label="Select product"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
