@@ -37,16 +37,50 @@ export interface ExpenseByCategory {
 }
 
 const normalizeTransactions = (transactions: any[] = []) =>
-  (transactions || []).map(t => ({
+  (transactions || []).map((t) => ({
     ...t,
     createdAtDate: new Date(t.createdAt || t.created_at || 0),
     total: Number(t.totalAmount ?? t.total_amount ?? 0),
-    paymentStatus: t.paymentStatus || t.payment_status || 'completed',
+    paymentStatus: t.paymentStatus || t.payment_status || "completed",
     isRefunded: t.isRefunded ?? t.is_refunded ?? false,
+    refundId: t.refundId || t.refund_id || null,
     items: Array.isArray(t.items) ? t.items : [],
   }));
 
-const isCompleted = (tx: any) => (tx.paymentStatus || 'completed') === 'completed' && !(tx.isRefunded ?? false);
+const isCompleted = (tx: any) => (tx.paymentStatus || "completed") === "completed";
+
+const formatDateLocal = (date: Date) => date.toLocaleDateString("en-CA");
+
+const buildRefundMap = (refunds: any[] = []) => {
+  const map: Record<string, number> = {};
+  refunds.forEach((r) => {
+    const txId = (r.transaction?._id || r.transaction || "").toString();
+    if (!txId) return;
+    const amount = Number(r.refundAmount ?? r.refund_amount ?? 0);
+    map[txId] = Math.max(0, amount);
+  });
+  return map;
+};
+
+const adjustedTotal = (tx: any, refundMap: Record<string, number>) => {
+  const refund = refundMap[tx._id || tx.id || ""] || 0;
+  return Math.max(0, tx.total - refund);
+};
+
+// Scale item-level values when a transaction is partially refunded so category/product views stay consistent.
+const getAdjustedItems = (tx: any, refundMap: Record<string, number>) => {
+  const total = tx.total || 0;
+  const refund = refundMap[tx._id || tx.id || ""] || 0;
+  if (!total || !tx.items?.length) return tx.items || [];
+  const factor = Math.max(0, Math.min(1, (total - refund) / total));
+  if (factor === 1) return tx.items;
+  if (factor === 0) return [];
+  return tx.items.map((item: any) => ({
+    ...item,
+    quantity: (item.quantity || 0) * factor,
+    subtotal: (item.subtotal || 0) * factor,
+  }));
+};
 
 export const dashboardService = {
   // Get dashboard statistics
@@ -57,13 +91,15 @@ export const dashboardService = {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const [transactionsRaw, productsRaw, customersRaw, expensesRaw] = await Promise.all([
+    const [transactionsRaw, productsRaw, customersRaw, expensesRaw, refundsRaw] = await Promise.all([
       api.get<any[]>(`/api/transactions`),
       api.get<any[]>(`/api/products`),
       api.get<any[]>(`/api/customers`),
       api.get<any[]>(`/api/expenses`),
+      api.get<any[]>(`/api/refunds`),
     ]);
 
+    const refundMap = buildRefundMap(refundsRaw);
     const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
     const products = (productsRaw || []).filter(p => p.isActive ?? p.is_active ?? true);
     const customers = customersRaw || [];
@@ -75,13 +111,13 @@ export const dashboardService = {
     const todayTransactions = inRange(startOfToday, endOfToday);
     const monthlyTransactions = inRange(startOfMonth, endOfMonth);
 
-    const sumRevenue = (txs: any[]) => txs.reduce((sum, t) => sum + t.total, 0);
+    const sumRevenue = (txs: any[]) => txs.reduce((sum, t) => sum + adjustedTotal(t, refundMap), 0);
     const todayRevenue = sumRevenue(todayTransactions);
     const monthlyRevenue = sumRevenue(monthlyTransactions);
 
     let totalProductsSold = 0;
     monthlyTransactions.forEach(t => {
-      t.items.forEach((item: any) => {
+      getAdjustedItems(t, refundMap).forEach((item: any) => {
         totalProductsSold += item.quantity || 0;
       });
     });
@@ -120,22 +156,29 @@ export const dashboardService = {
       return this.getMonthlyRevenueTrend();
     }
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
     const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
     startDate.setDate(startDate.getDate() - 13);
 
-    const tx = normalizeTransactions(await api.get<any[]>(`/api/transactions`)).filter(isCompleted);
+    const [transactionsRaw, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const tx = normalizeTransactions(transactionsRaw).filter(isCompleted);
     const revenueByDate: Record<string, number> = {};
     tx.forEach(t => {
       if (t.createdAtDate < startDate || t.createdAtDate > endDate) return;
-      const date = t.createdAtDate.toISOString().split('T')[0];
-      revenueByDate[date] = (revenueByDate[date] || 0) + t.total;
+      const date = formatDateLocal(t.createdAtDate);
+      revenueByDate[date] = (revenueByDate[date] || 0) + adjustedTotal(t, refundMap);
     });
 
     const result: RevenueDataPoint[] = [];
     for (let i = 0; i < 14; i++) {
       const date = new Date(startDate);
       date.setDate(date.getDate() + i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = formatDateLocal(date);
       const revenue = revenueByDate[dateStr] || 0;
       result.push({
         date: dateStr,
@@ -150,16 +193,23 @@ export const dashboardService = {
   // Get monthly revenue trend (last 12 months)
   async getMonthlyRevenueTrend(): Promise<RevenueDataPoint[]> {
     const endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 11);
     startDate.setDate(1);
-    const tx = normalizeTransactions(await api.get<any[]>(`/api/transactions`)).filter(isCompleted);
+    startDate.setHours(0, 0, 0, 0);
+    const [transactionsRaw, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const tx = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const revenueByMonth: Record<string, number> = {};
     tx.forEach(t => {
       if (t.createdAtDate < startDate || t.createdAtDate > endDate) return;
       const monthKey = `${t.createdAtDate.getFullYear()}-${String(t.createdAtDate.getMonth() + 1).padStart(2, '0')}`;
-      revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + t.total;
+      revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + adjustedTotal(t, refundMap);
     });
 
     const result: RevenueDataPoint[] = [];
@@ -183,13 +233,19 @@ export const dashboardService = {
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    const tx = normalizeTransactions(await api.get<any[]>(`/api/transactions`)).filter(isCompleted);
+    const [transactionsRaw, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const tx = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const productStats: Record<string, { name: string; sold: number; revenue: number }> = {};
     
     tx.forEach(t => {
       if (t.createdAtDate < startOfMonth) return;
-      t.items.forEach((item: any) => {
+      const adjustedItems = getAdjustedItems(t, refundMap);
+      adjustedItems.forEach((item: any) => {
         const key = item.productName || item.productId;
         if (!productStats[key]) {
           productStats[key] = { name: item.productName || key, sold: 0, revenue: 0 };
@@ -210,11 +266,13 @@ export const dashboardService = {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
     
-    const [transactionsRaw, productsRaw] = await Promise.all([
+    const [transactionsRaw, productsRaw, refundsRaw] = await Promise.all([
       api.get<any[]>(`/api/transactions`),
       api.get<any[]>(`/api/products`),
+      api.get<any[]>(`/api/refunds`),
     ]);
 
+    const refundMap = buildRefundMap(refundsRaw);
     const tx = normalizeTransactions(transactionsRaw).filter(isCompleted);
     const productCategories: Record<string, string> = {};
     (productsRaw || []).forEach(p => {
@@ -226,7 +284,7 @@ export const dashboardService = {
     
     tx.forEach(t => {
       if (t.createdAtDate < startOfMonth) return;
-      t.items.forEach((item: any) => {
+      getAdjustedItems(t, refundMap).forEach((item: any) => {
         const category = productCategories[item.productId] || 'Other';
         const amount = item.subtotal || 0;
         categorySales[category] = (categorySales[category] || 0) + amount;
