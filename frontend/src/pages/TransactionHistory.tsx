@@ -502,6 +502,33 @@ const TransactionHistory: React.FC = () => {
           </table>
         </div>
 
+        {/* Mobile bulk actions (owner only) */}
+        {isOwner && (
+          <div className="md:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                aria-label="Select all visible transactions"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAllVisible}
+                className="rounded border-border"
+              />
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.length > 0 ? `${selectedIds.length} selected` : 'Select all on page'}
+              </span>
+            </div>
+            {selectedIds.length > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                disabled={deletingSelection}
+                className="btn-danger text-xs"
+              >
+                Delete
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-border">
           {paginatedTransactions.map((t, index) => (

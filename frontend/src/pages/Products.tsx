@@ -432,6 +432,30 @@ const Products: React.FC = () => {
           </table>
         </div>
         
+        {/* Mobile bulk actions */}
+        <div className="md:hidden flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              aria-label="Select all products"
+              checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+              onChange={handleSelectAll}
+              className="rounded border-border"
+            />
+            <span className="text-sm text-muted-foreground">
+              {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+            </span>
+          </div>
+          {selectedIds.size > 0 && (
+            <button 
+              onClick={() => setShowDeleteConfirm(true)} 
+              className="btn-danger text-xs"
+            >
+              Delete
+            </button>
+          )}
+        </div>
+
         {/* Mobile Cards */}
         <div className="md:hidden divide-y divide-border">
           {filteredProducts.map((product, index) => (
