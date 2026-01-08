@@ -88,7 +88,7 @@ const Auth: React.FC = () => {
             <Store className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">RetailPulse</h1>
-          <p className="text-sm text-muted-foreground">Smart POS & Inventory Intelligence</p>
+          <p className="text-sm text-muted-foreground">RetailPulse---Track-Sales.-Control-Stock.-Grow-Profit.</p>
         </div>
 
         <Card className="border-border shadow-lg">
