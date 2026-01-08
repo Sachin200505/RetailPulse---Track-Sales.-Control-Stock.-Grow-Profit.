@@ -296,7 +296,7 @@ const Products: React.FC = () => {
           {selectedIds.size > 0 && (
             <button 
               onClick={() => setShowDeleteConfirm(true)} 
-              className="btn-danger text-sm"
+              className="btn-danger text-sm hidden md:inline-flex"
             >
               <Trash2 className="w-4 h-4" />
               Delete ({selectedIds.size})

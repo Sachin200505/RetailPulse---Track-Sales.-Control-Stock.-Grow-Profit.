@@ -360,7 +360,7 @@ const TransactionHistory: React.FC = () => {
               </select>
 
               {isOwner && (
-                <div className="flex gap-2 flex-wrap items-center">
+                <div className="hidden md:flex gap-2 flex-wrap items-center">
                   <button
                     onClick={handleDeleteSelected}
                     disabled={deletingSelection || selectedIds.length === 0}

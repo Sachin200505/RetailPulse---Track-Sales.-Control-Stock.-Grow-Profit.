@@ -44,6 +44,49 @@ export type DateFilter = 'today' | 'week' | 'month' | 'custom';
 
 type DateRange = { start: Date; end: Date };
 
+const normalizeTransactions = (transactions: any[] = []) =>
+  (transactions || []).map((t) => ({
+    ...t,
+    id: t._id || t.id,
+    createdAtDate: new Date(t.createdAt || t.created_at || 0),
+    total: Number(t.totalAmount ?? t.total_amount ?? 0),
+    paymentStatus: t.paymentStatus || t.payment_status || 'completed',
+    items: Array.isArray(t.items) ? t.items : [],
+  }));
+
+const isCompleted = (tx: any) => (tx.paymentStatus || 'completed') === 'completed';
+
+const buildRefundMap = (refunds: any[] = []) => {
+  const map: Record<string, number> = {};
+  refunds.forEach((r) => {
+    const txId = (r.transaction?._id || r.transaction || '').toString();
+    if (!txId) return;
+    const amount = Number(r.refundAmount ?? r.refund_amount ?? 0);
+    map[txId] = Math.max(0, amount);
+  });
+  return map;
+};
+
+const adjustedTotal = (tx: any, refundMap: Record<string, number>) => {
+  const refund = refundMap[tx.id || ''] || 0;
+  return Math.max(0, tx.total - refund);
+};
+
+// Scale item-level contributions for partial refunds to keep product/category metrics in sync.
+const getAdjustedItems = (tx: any, refundMap: Record<string, number>) => {
+  const total = tx.total || 0;
+  const refund = refundMap[tx.id || ''] || 0;
+  if (!total || !tx.items?.length) return tx.items || [];
+  const factor = Math.max(0, Math.min(1, (total - refund) / total));
+  if (factor === 1) return tx.items;
+  if (factor === 0) return [];
+  return tx.items.map((item: any) => ({
+    ...item,
+    quantity: (item.quantity || 0) * factor,
+    subtotal: (item.subtotal || 0) * factor,
+  }));
+};
+
 const getDateRange = (filter: DateFilter): DateRange => {
   const now = new Date();
   const end = new Date(now);
@@ -76,8 +119,13 @@ const inRange = (date: Date, start: Date, end: Date) => date >= start && date <=
 export const analyticsService = {
   async getSalesSummary(filter: DateFilter): Promise<SalesSummary> {
     const { start, end } = getDateRange(filter);
-    const transactions = await api.get<any[]>(`/api/transactions`);
-    const products = await api.get<any[]>(`/api/products`);
+    const [transactionsRaw, products, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/products`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const productMap: Record<string, { category: string; costPrice: number; sellingPrice: number }> = {};
     (products || []).forEach(p => {
@@ -92,21 +140,18 @@ export const analyticsService = {
     let totalProfit = 0;
     const categoryRevenue: Record<string, number> = {};
 
-    const filtered = (transactions || []).filter(t => inRange(toDate(t.createdAt || t.created_at), start, end));
+    const filtered = transactions.filter(t => inRange(t.createdAtDate, start, end));
 
     filtered.forEach(t => {
-      totalRevenue += Number(t.totalAmount ?? t.total_amount);
-      const items = t.items as any[];
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          const product = productMap[item.productId];
-          if (product) {
-            const itemProfit = (product.sellingPrice - product.costPrice) * item.quantity;
-            totalProfit += itemProfit;
-            categoryRevenue[product.category] = (categoryRevenue[product.category] || 0) + item.subtotal;
-          }
-        });
-      }
+      totalRevenue += adjustedTotal(t, refundMap);
+      getAdjustedItems(t, refundMap).forEach(item => {
+        const product = productMap[item.productId];
+        if (product) {
+          const itemProfit = (product.sellingPrice - product.costPrice) * item.quantity;
+          totalProfit += itemProfit;
+          categoryRevenue[product.category] = (categoryRevenue[product.category] || 0) + item.subtotal;
+        }
+      });
     });
 
     const topCategory = Object.entries(categoryRevenue).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
@@ -122,8 +167,13 @@ export const analyticsService = {
 
   async getProductSales(filter: DateFilter): Promise<ProductSalesData[]> {
     const { start, end } = getDateRange(filter);
-    const transactions = await api.get<any[]>(`/api/transactions`);
-    const products = await api.get<any[]>(`/api/products`);
+    const [transactionsRaw, products, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/products`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const productMap: Record<string, { name: string; category: string; costPrice: number; sellingPrice: number }> = {};
     (products || []).forEach(p => {
@@ -137,30 +187,26 @@ export const analyticsService = {
 
     const productStats: Record<string, ProductSalesData> = {};
 
-    (transactions || []).forEach(t => {
-      const createdAt = toDate(t.createdAt || t.created_at);
-      if (!inRange(createdAt, start, end)) return;
-      const items = t.items as any[];
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          const product = productMap[item.productId];
-          if (product) {
-            if (!productStats[item.productId]) {
-              productStats[item.productId] = {
-                productId: item.productId,
-                productName: product.name,
-                category: product.category,
-                quantitySold: 0,
-                revenue: 0,
-                profit: 0,
-              };
-            }
-            productStats[item.productId].quantitySold += item.quantity;
-            productStats[item.productId].revenue += item.subtotal;
-            productStats[item.productId].profit += (product.sellingPrice - product.costPrice) * item.quantity;
+    transactions.forEach(t => {
+      if (!inRange(t.createdAtDate, start, end)) return;
+      getAdjustedItems(t, refundMap).forEach(item => {
+        const product = productMap[item.productId];
+        if (product) {
+          if (!productStats[item.productId]) {
+            productStats[item.productId] = {
+              productId: item.productId,
+              productName: product.name,
+              category: product.category,
+              quantitySold: 0,
+              revenue: 0,
+              profit: 0,
+            };
           }
-        });
-      }
+          productStats[item.productId].quantitySold += item.quantity;
+          productStats[item.productId].revenue += item.subtotal;
+          productStats[item.productId].profit += (product.sellingPrice - product.costPrice) * item.quantity;
+        }
+      });
     });
 
     return Object.values(productStats).sort((a, b) => b.revenue - a.revenue);
@@ -168,8 +214,13 @@ export const analyticsService = {
 
   async getCategoryProfit(filter: DateFilter): Promise<CategoryProfitData[]> {
     const { start, end } = getDateRange(filter);
-    const transactions = await api.get<any[]>(`/api/transactions`);
-    const products = await api.get<any[]>(`/api/products`);
+    const [transactionsRaw, products, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/products`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const productMap: Record<string, { category: string; costPrice: number; sellingPrice: number }> = {};
     (products || []).forEach(p => {
@@ -182,22 +233,18 @@ export const analyticsService = {
 
     const categoryStats: Record<string, { revenue: number; cost: number }> = {};
 
-    (transactions || []).forEach(t => {
-      const createdAt = toDate(t.createdAt || t.created_at);
-      if (!inRange(createdAt, start, end)) return;
-      const items = t.items as any[];
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          const product = productMap[item.productId];
-          if (product) {
-            if (!categoryStats[product.category]) {
-              categoryStats[product.category] = { revenue: 0, cost: 0 };
-            }
-            categoryStats[product.category].revenue += item.subtotal;
-            categoryStats[product.category].cost += product.costPrice * item.quantity;
+    transactions.forEach(t => {
+      if (!inRange(t.createdAtDate, start, end)) return;
+      getAdjustedItems(t, refundMap).forEach(item => {
+        const product = productMap[item.productId];
+        if (product) {
+          if (!categoryStats[product.category]) {
+            categoryStats[product.category] = { revenue: 0, cost: 0 };
           }
-        });
-      }
+          categoryStats[product.category].revenue += item.subtotal;
+          categoryStats[product.category].cost += product.costPrice * item.quantity;
+        }
+      });
     });
 
     return Object.entries(categoryStats)
@@ -213,8 +260,13 @@ export const analyticsService = {
 
   async getDailyRevenue(filter: DateFilter): Promise<DailyRevenueData[]> {
     const { start, end } = getDateRange(filter);
-    const transactions = await api.get<any[]>(`/api/transactions`);
-    const products = await api.get<any[]>(`/api/products`);
+    const [transactionsRaw, products, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/products`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const productMap: Record<string, { costPrice: number; sellingPrice: number }> = {};
     (products || []).forEach(p => {
@@ -226,26 +278,21 @@ export const analyticsService = {
 
     const dailyStats: Record<string, { revenue: number; orders: number; profit: number }> = {};
 
-    (transactions || []).forEach(t => {
-      const createdAtRaw = t.createdAt || t.created_at;
-      if (!createdAtRaw) return;
-      const createdAt = toDate(createdAtRaw);
+    transactions.forEach(t => {
+      const createdAt = t.createdAtDate;
       if (!inRange(createdAt, start, end)) return;
-      const date = createdAtRaw.split('T')[0];
+      const date = createdAt.toISOString().split('T')[0];
       if (!dailyStats[date]) {
         dailyStats[date] = { revenue: 0, orders: 0, profit: 0 };
       }
-      dailyStats[date].revenue += Number(t.totalAmount ?? t.total_amount);
+      dailyStats[date].revenue += adjustedTotal(t, refundMap);
       dailyStats[date].orders += 1;
-      const items = t.items as any[];
-      if (Array.isArray(items)) {
-        items.forEach(item => {
-          const product = productMap[item.productId];
-          if (product) {
-            dailyStats[date].profit += (product.sellingPrice - product.costPrice) * item.quantity;
-          }
-        });
-      }
+      getAdjustedItems(t, refundMap).forEach(item => {
+        const product = productMap[item.productId];
+        if (product) {
+          dailyStats[date].profit += (product.sellingPrice - product.costPrice) * item.quantity;
+        }
+      });
     });
 
     const result: DailyRevenueData[] = [];
@@ -267,19 +314,23 @@ export const analyticsService = {
 
   async getPaymentMethodBreakdown(filter: DateFilter): Promise<PaymentMethodData[]> {
     const { start, end } = getDateRange(filter);
-    const transactions = await api.get<any[]>(`/api/transactions`);
+    const [transactionsRaw, refundsRaw] = await Promise.all([
+      api.get<any[]>(`/api/transactions`),
+      api.get<any[]>(`/api/refunds`),
+    ]);
+    const refundMap = buildRefundMap(refundsRaw);
+    const transactions = normalizeTransactions(transactionsRaw).filter(isCompleted);
 
     const methodStats: Record<string, { count: number; amount: number }> = {};
     let totalAmount = 0;
 
-    (transactions || []).forEach(t => {
-      const createdAt = toDate(t.createdAt || t.created_at);
-      if (!inRange(createdAt, start, end)) return;
+    transactions.forEach(t => {
+      if (!inRange(t.createdAtDate, start, end)) return;
       const method = t.paymentMethod || t.payment_method || 'unknown';
       if (!methodStats[method]) {
         methodStats[method] = { count: 0, amount: 0 };
       }
-      const amount = Number(t.totalAmount ?? t.total_amount);
+      const amount = adjustedTotal(t, refundMap);
       methodStats[method].count += 1;
       methodStats[method].amount += amount;
       totalAmount += amount;
